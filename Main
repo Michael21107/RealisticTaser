@@ -1,0 +1,111 @@
+using System;
+using System.Linq;  //for checking strings
+using System.Net;
+using System.Threading;
+using LSPD_First_Response.Mod.API;
+using Rage;
+
+namespace RealisticTaser
+{
+    class MainThread
+    {
+        public static Ped player = Game.LocalPlayer.Character;
+        public static Entity Suspect;
+        private static int FinalTaserSuccess;
+
+        public static void Main()
+        {
+            GameFiber.StartNew(delegate
+            {
+                try
+                {
+                    while (true)
+                    {
+                        GameFiber.Yield();
+                        while (player.Exists()) //this is to sleep the plugin when the player does not using any weapon. This is also a workaround to a crash when LSPDFR reloads.
+                        {
+                            GameFiber.Yield();
+                            if (player.Exists())
+                            {
+                                if (player.IsAiming || player.IsShooting)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (player.Exists()) //this is to prevent the plugin from crashing when lspdfr reloads and resets the ped and its inventory.
+                        {
+                            if (player.Inventory.EquippedWeapon.Hash == WeaponHash.StunGun)
+                            {
+                                Suspect = Game.LocalPlayer.GetFreeAimingTarget();
+                                if (Suspect.Exists() && Suspect.IsValid())
+                                {
+                                    if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: SUSPECT VALID");
+                                    System.Random rando = new System.Random();
+
+                                    if (Config.TaserSuccessRange)
+                                    {
+                                        float distance = player.DistanceTo(Suspect);
+                                        FinalTaserSuccess = (int)(Config.ScaleFactor * (60.7539 / Math.Pow(distance, 0.824732)) - 12.821); //taser success rate based on npr article (in metres)
+                                        if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER SUCCESS PROBABILITY: " + FinalTaserSuccess);
+
+                                        int TaserSuccess = rando.Next(Config.ScaleFactor * 5, 101);
+                                        if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER SUCCESS PROBABILITY MUST BE HIGHER THAN: " + TaserSuccess);
+
+                                        if (FinalTaserSuccess > TaserSuccess)
+                                        {
+                                            if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER SUCCESS");
+                                            Suspect.IsInvincible = false;
+                                            if (player.Exists()) while (player.IsWeaponReadyToShoot) GameFiber.Wait(0); //test
+                                        }
+                                        else
+                                        {
+                                            //Rage.Native.NativeFunction.Natives.SET_ENTITY_INVINCIBLE(Suspect, true);
+                                            Suspect.IsInvincible = true;
+                                            if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER NOT SUCCESS");
+                                            if (player.Exists()) while (player.IsWeaponReadyToShoot) GameFiber.Wait(0);
+                                            Suspect.IsInvincible = false;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        int TaserSuccess = rando.Next(0, 101);
+                                        if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER SUCCESS PROBABILITY: " + TaserSuccess);
+
+                                        if (TaserSuccess < Config.TaserSuccess)
+                                        {
+                                            if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER SUCCESS");
+                                        }
+                                        else
+                                        {
+                                            //Rage.Native.NativeFunction.Natives.SET_ENTITY_INVINCIBLE(Suspect, true);
+                                            Suspect.IsInvincible = true;
+                                            if (Config.LogDebugMessages) Game.LogTrivial("REALISTICTASER: TASER NOT SUCCESS");
+                                            if (player.Exists()) while (player.IsWeaponReadyToShoot) GameFiber.Wait(0);
+                                            Suspect.IsInvincible = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //end of loop
+                    }
+                }
+                catch (System.Threading.ThreadAbortException) { }
+                catch (Exception e)
+                {
+
+                    Game.LogTrivial("==========REALISTICTASER: ERROR CAUGHT==========");
+                    string error = e.ToString();
+                    Game.LogTrivial("ERROR: " + error);
+                    Game.DisplayNotification("There was an ~r~Error~w~ Caught with ~b~RealisticTaser. ~w~Please Check Your ~g~Log File.~w~ Sorry for the Inconvenience!");
+                    //Game.DisplayNotification("Error: ~r~" + error);
+                    Game.LogTrivial("If You Believe this is a Bug, Please Report it on my Discord Server. Thanks!");
+                    Game.LogTrivial("If this occurred when you unloaded the plugin, don't worry about it. It isn't a bug but I can't find a way to stop this error message lol.");
+                    Game.LogTrivial("==========REALISTICTASER: ERROR CAUGHT==========");
+                }
+            });
+        }
+    }
+}
