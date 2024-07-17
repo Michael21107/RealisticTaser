@@ -51,12 +51,6 @@ namespace RealisticTaser
                     Game.DisplayNotification("It is ~y~Strongly Recommended~w~ to~g~ Update~b~ Realistic Taser. ~w~Playing on an Old Version ~r~May Cause Issues!");
                     UpToDate = false;
                 }
-                else if (curVersion.CompareTo(NewVersion) > 0)
-                {
-                    Game.LogTrivial("YOBBINCALLOUTS: DETECTED BETA RELEASE. DO NOT REDISTRIBUTE. PLEASE REPORT ALL ISSUES.");
-                    Game.DisplayNotification("YOBBINCALLOUTS: ~r~DETECTED BETA RELEASE. ~w~DO NOT REDISTRIBUTE. PLEASE REPORT ALL ISSUES.");
-                    UpToDate = true;
-                }
                 else
                 {
                     Game.DisplayNotification("You are on the ~g~Latest Version~w~ of ~b~Realistic Taser.");
